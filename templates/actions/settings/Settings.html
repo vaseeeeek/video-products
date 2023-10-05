@@ -1,0 +1,71 @@
+<h1>Настройки</h1>
+
+<ul id="tag-list">
+    {foreach from=$tags item=tag}
+        <li>
+            {$tag.name}
+            <button class="delete-tag" data-id="{$tag.id}">X</button>
+        </li>
+    {/foreach}
+</ul>
+
+<input type="text" id="new-tag" placeholder="Новый тэг">
+<button id="save-tag">Сохранить</button>
+
+<script>
+    $(document).ready(function() {
+
+        function deleteTag(tagElement) {
+            var tagId = $(tagElement).data('id');
+
+            if (tagId) {
+                $.ajax({
+                    url: '/webasyst/shop/?plugin=productvideo&action=deletetag',
+                    type: 'POST',
+                    data: { id: tagId },
+                    success: function(response) {
+                        if (response.status === 'ok') {
+                            $(tagElement).closest('li').remove();
+                        } 
+                    }
+                });
+            }
+        }
+        $(document).on('click', '.delete-tag', function() {
+            deleteTag(this);
+        });
+    });
+
+
+    $(document).ready(function() {
+        function addTag() {
+            var newTag = $('#new-tag').val();
+
+            if (newTag) {
+                $.ajax({
+                    url: '/webasyst/shop/?plugin=productvideo&action=createtag',
+                    type: 'POST',
+                    data: { tag: newTag },
+                    success: function(response) {
+                        if (response.status === 'ok') {
+                            $('#tag-list').append('<li>' + newTag +
+                                ' <button class="delete-tag" data-id="new">X</button></li>');
+                            $('#new-tag').val('');
+                        }
+                    }
+                });
+            }
+        }
+
+        $('#save-tag').click(function() {
+            addTag();
+        });
+
+        $('#new-tag').keypress(function(e) {
+            if (e.which === 13) { 
+                e.preventDefault();
+                addTag();
+            }
+        });
+    });
+</script>

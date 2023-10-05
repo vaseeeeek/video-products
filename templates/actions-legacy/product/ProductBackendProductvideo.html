@@ -1,0 +1,126 @@
+<style>
+    ul#video-list {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    #video-list li {
+        margin-bottom: 10px;
+        border-bottom: 1px solid#ebebeb;
+        padding-bottom: 10px;
+    }
+
+    #video-list span.tag {
+        padding: 5px;
+        border: 1px solid #ebebeb;
+        display: inline-block;
+    }
+
+    #video-list span.tag.selected {
+        padding: 5px;
+        border: 1px solid #6C3;
+        display: inline-block;
+    }
+</style>
+<h2>Ссылки на видео</h2>
+<ul id="video-list">
+    {foreach from=$videos item=video}
+        <li data-id="{$video.id}">
+            <a href="{$video.video_url}" target="_blank">{$video.video_url}</a>
+            <!-- Display tags -->
+            <span class="tags">
+                {foreach from=$tags item=tag}
+                    <span class="tag {if strpos($video.tags, (string)$tag.id) !== false}selected{/if}"
+                        data-id="{$tag.id}">{$tag.name}</span>
+                {/foreach}
+            </span>
+            <!-- Delete button -->
+            <button class="delete-video" data-id="{$video.id}">Удалить</button>
+        </li>
+    {/foreach}
+</ul>
+
+<input type="text" id="new-video" placeholder="Ссылка на видео">
+<button id="add-video">Добавить</button>
+
+<script>
+    $(document).ready(function() {
+        $('.tag').click(function() {
+            $(this).toggleClass('selected');
+            var videoId = $(this).closest('li').data(
+                'id'); // Assuming each <li> has a data-id attribute for the video ID
+            var selectedTags = $(this).closest('.tags').find('.selected').map(function() {
+                return $(this).data('id'); // Assuming each tag has a data-id attribute
+            }).get().join(',');
+            console.log(videoId);
+            console.log(selectedTags);
+            $.ajax({
+                url: '/webasyst/shop/?plugin=productvideo&action=updatetags',
+                type: 'POST',
+                data: {
+                    id: videoId,
+                    tags: selectedTags
+                },
+                success: function(response) {
+                    if (response.status !== 'ok') {
+                        alert('Could not update tags: ' + response.errors);
+                    }
+                },
+                error: function() {
+                    alert('An error occurred while updating the tags.');
+                }
+            });
+        });
+
+        // Удаление видео
+        $('.delete-video').click(function() {
+            var videoId = $(this).data('id'); // Получаем ID видео
+
+            $.ajax({
+                url: '/webasyst/shop/?plugin=productvideo&action=deletevideo',
+                type: 'POST',
+                data: { id: videoId },
+                success: function(response) {
+                    if (response.status === 'ok') {
+                        // Удаляем видео из списка
+                        $('li[data-id="' + videoId + '"]').remove();
+                    } 
+                },
+                error: function() {
+                    alert('Произошла ошибка при удалении видео.');
+                }
+            });
+        });
+
+        $(document).ready(function() {
+            $('#add-video').click(function() {
+                var newVideo = $('#new-video').val();
+                var productId = $('#shop-productprofile').data(
+                    'product-id'); 
+                if (newVideo) {
+                    $.ajax({
+                        url: '/webasyst/shop/?plugin=productvideo&action=addvideo',
+                        type: 'POST',
+                        data: {
+                            video_url: newVideo,
+                            product_id: productId
+                        },
+                        success: function(response) {
+                            if (response.status === 'ok') {
+                                $('#video-list').append('<li>' + newVideo +
+                                    ' <button class="delete-video" data-id="new">Delete</button></li>'
+                                );
+                                
+                                $('#new-video').val('');
+                            }
+                        },
+                        error: function() {
+                            alert('An error occurred while adding the video.');
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
